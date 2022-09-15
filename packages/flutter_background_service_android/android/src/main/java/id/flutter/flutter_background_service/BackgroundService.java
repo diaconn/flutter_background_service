@@ -161,7 +161,10 @@ public class BackgroundService extends Service implements MethodChannel.MethodCa
 
     private void createNotificationChannel() {
         if (SDK_INT >= Build.VERSION_CODES.O) {
-            CharSequence name = "Background Service";
+            //CharSequence name = "Background Service";
+            /* 디아콘 추가 시작 */
+            CharSequence name = "LGS";
+            /* 디아콘 추가 끝 */
             String description = "Executing process in background";
 
             int importance = NotificationManager.IMPORTANCE_LOW;
