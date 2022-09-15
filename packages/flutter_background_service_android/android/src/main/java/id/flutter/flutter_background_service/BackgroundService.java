@@ -11,6 +11,7 @@ import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.BitmapFactory;
 import android.os.Build;
 import android.os.IBinder;
 import android.os.PowerManager;
@@ -48,6 +49,7 @@ public class BackgroundService extends Service implements MethodChannel.MethodCa
 
     private String notificationTitle = "Background Service";
     private String notificationContent = "Running";
+    private String notificationLargeIcon = "";
     private String notificationChannelId = "FOREGROUND_DEFAULT";
     private int notificationId = 112233;
 
@@ -195,8 +197,51 @@ public class BackgroundService extends Service implements MethodChannel.MethodCa
         }
     }
 
+    /* 디아콘 추가 시작 */
+    protected void updateNotificationInfoLargeIcon() {
+        if (isForegroundService(this)) {
+
+            String packageName = getApplicationContext().getPackageName();
+            Intent i = getPackageManager().getLaunchIntentForPackage(packageName);
+
+            int flags = PendingIntent.FLAG_CANCEL_CURRENT;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                flags |= PendingIntent.FLAG_MUTABLE;
+            }
+
+            PendingIntent pi = PendingIntent.getActivity(BackgroundService.this, 11, i, flags);
+            NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(this, notificationChannelId)
+                    .setSmallIcon(R.drawable.ic_bg_service_small)
+                    .setLargeIcon(BitmapFactory.decodeFile(notificationLargeIcon))
+                    .setAutoCancel(true)
+                    .setOngoing(true)
+                    .setContentTitle(notificationTitle)
+                    .setContentText(notificationContent)
+                    .setContentIntent(pi);
+
+            startForeground(notificationId, mBuilder.build());
+        }
+    }
+    /* 디아콘 추가 끝 */
+
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        /* 디아콘 추가 시작 */
+        if (intent != null && intent.getAction() != null && intent.getAction().equals("ACTION_STOP")) {
+            isManuallyStopped = true;
+            Intent intent2 = new Intent(this, WatchdogReceiver.class);
+
+            int flags2 = PendingIntent.FLAG_CANCEL_CURRENT;
+            if (SDK_INT >= Build.VERSION_CODES.S) {
+                flags2 |= PendingIntent.FLAG_MUTABLE;
+            }
+
+            PendingIntent pi = PendingIntent.getBroadcast(getApplicationContext(), QUEUE_REQUEST_ID, intent2, flags2);
+            AlarmManager alarmManager = (AlarmManager) getSystemService(ALARM_SERVICE);
+            alarmManager.cancel(pi);
+            stopSelf();
+        }
+        /* 디아콘 추가 끝 */
         setManuallyStopped(false);
         enqueue(this);
         runService();
@@ -253,6 +298,7 @@ public class BackgroundService extends Service implements MethodChannel.MethodCa
         }
     }
 
+    /* 디아콘 주석처리
     @Override
     public void onTaskRemoved(Intent rootIntent) {
 
@@ -267,7 +313,7 @@ public class BackgroundService extends Service implements MethodChannel.MethodCa
         PendingIntent pi = PendingIntent.getService(this, 1, restartServiceIntent, flags);
         AlarmManager alarmManager = (AlarmManager) getApplicationContext().getSystemService(Context.ALARM_SERVICE);
         alarmManager.set(AlarmManager.ELAPSED_REALTIME, SystemClock.elapsedRealtime() + 1000, pi);
-    }
+    }*/
 
     @Override
     public void onMethodCall(@NonNull MethodCall call, @NonNull MethodChannel.Result result) {
@@ -291,6 +337,20 @@ public class BackgroundService extends Service implements MethodChannel.MethodCa
                 }
                 return;
             }
+
+            /* 디아콘 추가 시작 */
+            if (method.equalsIgnoreCase("setNotificationInfoLargeIcon")) {
+                JSONObject arg = (JSONObject) call.arguments;
+                if (arg.has("title")) {
+                    notificationTitle = arg.getString("title");
+                    notificationContent = arg.getString("content");
+                    notificationLargeIcon = arg.getString("largeIcon");
+                    updateNotificationInfoLargeIcon();
+                    result.success(true);
+                }
+                return;
+            }
+            /* 디아콘 추가 끝 */
 
             if (method.equalsIgnoreCase("setAutoStartOnBootMode")) {
                 JSONObject arg = (JSONObject) call.arguments;

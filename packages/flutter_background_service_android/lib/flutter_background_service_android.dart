@@ -22,8 +22,7 @@ Future<void> entrypoint() async {
 class FlutterBackgroundServiceAndroid extends FlutterBackgroundServicePlatform {
   /// Registers this class as the default instance of [FlutterBackgroundServicePlatform].
   static void registerWith() {
-    FlutterBackgroundServicePlatform.instance =
-        FlutterBackgroundServiceAndroid();
+    FlutterBackgroundServicePlatform.instance = FlutterBackgroundServiceAndroid();
   }
 
   static const MethodChannel _channel = const MethodChannel(
@@ -53,8 +52,7 @@ class FlutterBackgroundServiceAndroid extends FlutterBackgroundServicePlatform {
   }) async {
     _channel.setMethodCallHandler(_handle);
 
-    final CallbackHandle? handle =
-        PluginUtilities.getCallbackHandle(androidConfiguration.onStart);
+    final CallbackHandle? handle = PluginUtilities.getCallbackHandle(androidConfiguration.onStart);
 
     if (handle == null) {
       throw 'onStart method must be a top-level or static function';
@@ -66,10 +64,8 @@ class FlutterBackgroundServiceAndroid extends FlutterBackgroundServicePlatform {
         "background_handle": handle.toRawHandle(),
         "is_foreground_mode": androidConfiguration.isForegroundMode,
         "auto_start_on_boot": androidConfiguration.autoStart,
-        "initial_notification_content":
-            androidConfiguration.initialNotificationContent,
-        "initial_notification_title":
-            androidConfiguration.initialNotificationTitle,
+        "initial_notification_content": androidConfiguration.initialNotificationContent,
+        "initial_notification_title": androidConfiguration.initialNotificationTitle,
         "notification_channel_id": androidConfiguration.notificationChannelId,
         "foreground_notification_id": androidConfiguration.foregroundServiceNotificationId,
       },
@@ -166,6 +162,20 @@ class AndroidServiceInstance extends ServiceInstance {
       "content": content,
     });
   }
+
+  /* 디아콘 추가 시작 */
+  Future<void> setForegroundNotificationInfoLargeIcon({
+    required String title,
+    required String content,
+    required String largeIconPath,
+  }) async {
+    await _channel.invokeMethod("setNotificationInfoLargeIcon", {
+      "title": title,
+      "content": content,
+      "largeIcon": largeIconPath,
+    });
+  }
+  /* 디아콘 추가 끝 */
 
   Future<void> setAsForegroundService() async {
     await _channel.invokeMethod("setForegroundMode", {
