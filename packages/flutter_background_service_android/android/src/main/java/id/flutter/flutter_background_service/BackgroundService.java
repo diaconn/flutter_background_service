@@ -10,6 +10,9 @@ import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+/* 디아콘 추가 시작 */
+import android.graphics.BitmapFactory;
+/* 디아콘 추가 끝 */
 import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
@@ -53,6 +56,9 @@ public class BackgroundService extends Service implements MethodChannel.MethodCa
     private boolean isManuallyStopped = false;
     private String notificationTitle;
     private String notificationContent;
+    /* 디아콘 추가 시작 */
+    private String notificationLargeIcon;
+    /* 디아콘 추가 끝 */
     private String notificationChannelId;
     private int notificationId;
     private Handler mainHandler;
@@ -156,7 +162,10 @@ public class BackgroundService extends Service implements MethodChannel.MethodCa
 
     private void createNotificationChannel() {
         if (SDK_INT >= Build.VERSION_CODES.O) {
-            CharSequence name = "Background Service";
+            //CharSequence name = "Background Service";
+            /* 디아콘 추가 시작 */
+            CharSequence name = "LGS";
+            /* 디아콘 추가 끝 */
             String description = "Executing process in background";
 
             int importance = NotificationManager.IMPORTANCE_LOW;
@@ -191,8 +200,55 @@ public class BackgroundService extends Service implements MethodChannel.MethodCa
         }
     }
 
+    /* 디아콘 추가 시작 */
+    protected void updateNotificationInfoLargeIcon() {
+        if (config.isForeground()) {
+            String packageName = getApplicationContext().getPackageName();
+            Intent i = getPackageManager().getLaunchIntentForPackage(packageName);
+
+            int flags = PendingIntent.FLAG_CANCEL_CURRENT;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                flags |= PendingIntent.FLAG_MUTABLE;
+            }
+
+            PendingIntent pi = PendingIntent.getActivity(BackgroundService.this, 11, i, flags);
+            NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(this, notificationChannelId)
+                    .setSmallIcon(R.drawable.ic_bg_service_small)
+                    .setLargeIcon(BitmapFactory.decodeFile(notificationLargeIcon))
+                    .setAutoCancel(true)
+                    .setOngoing(true)
+                    .setContentTitle(notificationTitle)
+                    .setContentText(notificationContent)
+                    .setContentIntent(pi);
+
+            startForeground(notificationId, mBuilder.build());
+        }
+    }
+    /* 디아콘 추가 끝 */
+
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        /* 디아콘 추가 시작 */
+        if (intent != null && intent.getAction() != null && intent.getAction().equals("ACTION_STOP")) {
+            isManuallyStopped = true;
+            WatchdogReceiver.remove(this);
+
+            try {
+                synchronized (listeners) {
+                    for (Integer key : listeners.keySet()) {
+                        IBackgroundService listener = listeners.get(key);
+                        if (listener != null) {
+                            listener.stop();
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
+            stopSelf();
+        }
+        /* 디아콘 추가 끝 */
         config.setManuallyStopped(false);
         WatchdogReceiver.enqueue(this);
         runService();
@@ -260,12 +316,13 @@ public class BackgroundService extends Service implements MethodChannel.MethodCa
         }
     }
 
+    /* 디아콘 주석처리
     @Override
     public void onTaskRemoved(Intent rootIntent) {
         if (isRunning.get()) {
             WatchdogReceiver.enqueue(getApplicationContext(), 1000);
         }
-    }
+    }*/
 
     @Override
     public void onMethodCall(@NonNull MethodCall call, @NonNull MethodChannel.Result result) {
@@ -282,6 +339,20 @@ public class BackgroundService extends Service implements MethodChannel.MethodCa
                 }
                 return;
             }
+
+            /* 디아콘 추가 시작 */
+            if (method.equalsIgnoreCase("setNotificationInfoLargeIcon")) {
+                JSONObject arg = (JSONObject) call.arguments;
+                if (arg.has("title")) {
+                    notificationTitle = arg.getString("title");
+                    notificationContent = arg.getString("content");
+                    notificationLargeIcon = arg.getString("largeIcon");
+                    updateNotificationInfoLargeIcon();
+                    result.success(true);
+                }
+                return;
+            }
+            /* 디아콘 추가 끝 */
 
             if (method.equalsIgnoreCase("setAutoStartOnBootMode")) {
                 JSONObject arg = (JSONObject) call.arguments;
