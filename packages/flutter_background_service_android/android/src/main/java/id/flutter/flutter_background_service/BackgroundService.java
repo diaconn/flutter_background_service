@@ -316,13 +316,12 @@ public class BackgroundService extends Service implements MethodChannel.MethodCa
         }
     }
 
-    /* 디아콘 주석처리
     @Override
     public void onTaskRemoved(Intent rootIntent) {
         if (isRunning.get()) {
             WatchdogReceiver.enqueue(getApplicationContext(), 1000);
         }
-    }*/
+    }
 
     @Override
     public void onMethodCall(@NonNull MethodCall call, @NonNull MethodChannel.Result result) {
