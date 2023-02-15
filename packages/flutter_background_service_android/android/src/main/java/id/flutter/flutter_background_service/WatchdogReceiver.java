@@ -53,7 +53,10 @@ public class WatchdogReceiver extends BroadcastReceiver {
 
     @Override
     public void onReceive(Context context, Intent intent) {
-        if (intent.getAction().equals(ACTION_RESPAWN)){
+        /* 디아콘 수정 시작 */
+        //if (intent.getAction().equals(ACTION_RESPAWN)){
+        if (ACTION_RESPAWN.equals(intent.getAction())){
+            /* 디아콘 수정 끝 */
             final Config config = new Config(context);
             if (!config.isManuallyStopped()) {
                 if (config.isForeground()) {
